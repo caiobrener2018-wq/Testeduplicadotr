@@ -38,21 +38,23 @@ def _set(job_id, **kw):
         JOBS[job_id].update(kw)
 
 
-def _run_job(job_id, caminho_entrada, caminho_saida, fotos_col):
+def _run_job(job_id, caminho_entrada, caminho_saida, fotos_cols):
     def progress(feito, total):
         _set(job_id, feito=feito, total=total,
              pct=round(feito / total * 100) if total else 0)
     try:
         _set(job_id, status="processando", etapa="Lendo planilha e baixando imagens…")
         res = detector.processar(caminho_entrada, caminho_saida,
-                                 progress_cb=progress, fotos_col=fotos_col)
+                                 progress_cb=progress, fotos_cols=fotos_cols)
         dups = [{
             "linha_dup": d.foto.row,
+            "coluna_dup": d.foto.col_letra,
             "pos": d.foto.idx_na_celula + 1,
             "linha_orig": d.original.row,
+            "coluna_orig": d.original.col_letra,
             "url": d.foto.url,
-        } for d in sorted(res.duplicatas, key=lambda x: x.foto.row)]
-        falhas = [{"linha": f.row, "pos": f.idx_na_celula + 1,
+        } for d in sorted(res.duplicatas, key=lambda x: (x.foto.row, x.foto.col))]
+        falhas = [{"linha": f.row, "coluna": f.col_letra, "pos": f.idx_na_celula + 1,
                    "erro": f.erro, "url": f.url} for f in res.falhas]
         _set(job_id, status="concluido", etapa="Concluído",
              resumo={
@@ -80,11 +82,6 @@ def processar():
     if not f.filename.lower().endswith((".xlsx", ".xlsm")):
         return jsonify({"erro": "Envie um arquivo .xlsx"}), 400
 
-    try:
-        fotos_col = int(request.form.get("fotos_col", 4))
-    except ValueError:
-        fotos_col = 4
-
     job_id = uuid.uuid4().hex
     nome = secure_filename(f.filename)
     entrada = os.path.join(UPLOAD_DIR, f"{job_id}_{nome}")
@@ -95,7 +92,7 @@ def processar():
         JOBS[job_id] = {"status": "iniciando", "pct": 0, "etapa": "Preparando…"}
 
     t = threading.Thread(target=_run_job,
-                         args=(job_id, entrada, saida, fotos_col), daemon=True)
+                         args=(job_id, entrada, saida, detector.FOTOS_COLS), daemon=True)
     t.start()
     return jsonify({"job_id": job_id})
 

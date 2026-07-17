@@ -2,19 +2,19 @@
 Motor de detecção de fotos duplicadas.
 
 Fluxo:
-1. Lê a planilha (.xlsx) e extrai os links de imagem da coluna de fotos.
-   Cada célula pode conter vários links (um por linha dentro da célula).
+1. Lê a planilha (.xlsx) e extrai os links de imagem das colunas de fotos
+   (por padrão D, E e F). Cada célula pode conter vários links (um por
+   linha dentro da célula).
 2. Baixa cada imagem e calcula o hash SHA-256 dos bytes (duplicata = mesmo arquivo).
    Atalho: se dois links têm o mesmo ID de arquivo na URL, já são a mesma imagem.
-3. Agrupa as imagens idênticas. A 1ª ocorrência (linha mais acima) é a "original";
-   as seguintes são "duplicadas".
-4. Gera um novo Excel colorindo as células/atendimentos duplicados e adiciona
-   colunas indicando de qual linha (original) cada duplicata foi copiada.
+3. Agrupa as imagens idênticas. A 1ª ocorrência (linha/coluna mais acima) é a
+   "original"; as seguintes são "duplicadas".
+4. Gera um novo Excel colorindo exatamente as células duplicadas e adiciona
+   colunas indicando de qual linha/coluna (original) cada duplicata foi copiada.
 """
 
 import re
 import hashlib
-import io
 from dataclasses import dataclass, field
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -27,8 +27,8 @@ from openpyxl.utils import get_column_letter
 # Configuração
 # ------------------------------------------------------------------ #
 
-# Coluna onde ficam os links das fotos (D = 4). Ajustável.
-FOTOS_COL = 4
+# Colunas onde ficam os links das fotos (D=4, E=5, F=6). Ajustável.
+FOTOS_COLS = [4, 5, 6]
 HEADER_ROW = 1
 DOWNLOAD_TIMEOUT = 20      # segundos por imagem
 MAX_WORKERS = 8            # downloads paralelos
@@ -51,12 +51,17 @@ _ID_RE = re.compile(r"/arquivo/([0-9a-fA-F]+)/", re.IGNORECASE)
 @dataclass
 class Foto:
     row: int                    # linha na planilha (1-indexed)
+    col: int                     # coluna na planilha (1-indexed; D=4, E=5, F=6)
     idx_na_celula: int          # posição do link dentro da célula (0,1,2...)
     url: str
     file_id: str = ""           # ID extraído da URL, se houver
     sha256: str = ""            # hash do conteúdo baixado
     erro: str = ""              # mensagem se o download falhou
     tamanho: int = 0            # bytes
+
+    @property
+    def col_letra(self):
+        return get_column_letter(self.col)
 
 
 @dataclass
@@ -88,18 +93,21 @@ def _split_links(valor):
     return [p.strip() for p in partes if p.strip().lower().startswith("http")]
 
 
-def extrair_fotos(caminho_xlsx, fotos_col=FOTOS_COL):
-    """Lê a planilha e retorna a lista de Foto (uma por link encontrado)."""
+def extrair_fotos(caminho_xlsx, fotos_cols=FOTOS_COLS):
+    """Lê a planilha e retorna a lista de Foto (uma por link encontrado),
+    varrendo TODAS as colunas informadas (padrão: D, E e F) em cada linha."""
     wb = load_workbook(caminho_xlsx)
     ws = wb.active
     fotos = []
     for row in range(HEADER_ROW + 1, ws.max_row + 1):
-        valor = ws.cell(row=row, column=fotos_col).value
-        links = _split_links(valor)
-        for idx, url in enumerate(links):
-            m = _ID_RE.search(url)
-            file_id = m.group(1) if m else ""
-            fotos.append(Foto(row=row, idx_na_celula=idx, url=url, file_id=file_id))
+        for col in fotos_cols:
+            valor = ws.cell(row=row, column=col).value
+            links = _split_links(valor)
+            for idx, url in enumerate(links):
+                m = _ID_RE.search(url)
+                file_id = m.group(1) if m else ""
+                fotos.append(Foto(row=row, col=col, idx_na_celula=idx,
+                                   url=url, file_id=file_id))
     return fotos
 
 
@@ -149,14 +157,15 @@ def detectar(fotos, ignorar_mesma_linha=True):
     Considera idênticas se: mesmo sha256 OU (sem hash) mesmo file_id.
 
     ignorar_mesma_linha: se True, duas fotos iguais no MESMO atendimento
-    (mesma linha) não são tratadas como duplicata — provável reenvio
-    acidental, não uso indevido entre atendimentos distintos."""
+    (mesma linha, independente da coluna D/E/F) não são tratadas como
+    duplicata — provável reenvio acidental, não uso indevido entre
+    atendimentos distintos."""
     resultado = Resultado(fotos=fotos, total_links=len(fotos))
 
-    # ordena por linha e posição para que "original" seja sempre a de cima
+    # ordena por linha, coluna e posição para que "original" seja sempre a de cima
     fotos_ok = sorted(
         [f for f in fotos if f.sha256],
-        key=lambda f: (f.row, f.idx_na_celula)
+        key=lambda f: (f.row, f.col, f.idx_na_celula)
     )
     resultado.total_baixadas = len(fotos_ok)
     resultado.falhas = [f for f in fotos if not f.sha256]
@@ -174,16 +183,16 @@ def detectar(fotos, ignorar_mesma_linha=True):
 
     # Atalho por file_id, para pares que não puderam ser baixados mas têm ID igual.
     # (só marca se ainda não foi pego pelo hash)
-    ja_dup = {(d.foto.row, d.foto.idx_na_celula) for d in resultado.duplicatas}
+    ja_dup = {(d.foto.row, d.foto.col, d.foto.idx_na_celula) for d in resultado.duplicatas}
     visto_id = {}
-    for f in sorted(fotos, key=lambda f: (f.row, f.idx_na_celula)):
+    for f in sorted(fotos, key=lambda f: (f.row, f.col, f.idx_na_celula)):
         if not f.file_id:
             continue
         if f.file_id in visto_id:
             orig = visto_id[f.file_id]
             if ignorar_mesma_linha and orig.row == f.row:
                 continue
-            if (f.row, f.idx_na_celula) not in ja_dup and f.sha256 == "":
+            if (f.row, f.col, f.idx_na_celula) not in ja_dup and f.sha256 == "":
                 resultado.duplicatas.append(
                     Duplicata(foto=f, original=orig))
         else:
@@ -205,19 +214,20 @@ FILL_HDR = PatternFill("solid", fgColor="1F4E78")
 
 
 def gerar_excel(caminho_entrada, resultado: Resultado, caminho_saida,
-                fotos_col=FOTOS_COL):
-    """Cria um novo xlsx com duplicatas coloridas e colunas de diagnóstico."""
+                fotos_cols=FOTOS_COLS):
+    """Cria um novo xlsx com duplicatas coloridas célula a célula (D/E/F)
+    e adiciona colunas de diagnóstico."""
     wb = load_workbook(caminho_entrada)
     ws = wb.active
 
-    # índice: (row) -> lista de duplicatas naquela linha
-    dups_por_linha = {}
+    # índice por CÉLULA exata (linha, coluna), não só pela linha
+    dups_por_celula = {}
     for d in resultado.duplicatas:
-        dups_por_linha.setdefault(d.foto.row, []).append(d)
-    linhas_originais = {d.original.row for d in resultado.duplicatas}
-    falhas_por_linha = {}
+        dups_por_celula.setdefault((d.foto.row, d.foto.col), []).append(d)
+    originais_por_celula = {(d.original.row, d.original.col) for d in resultado.duplicatas}
+    falhas_por_celula = {}
     for f in resultado.falhas:
-        falhas_por_linha.setdefault(f.row, []).append(f)
+        falhas_por_celula.setdefault((f.row, f.col), []).append(f)
 
     # colunas novas de diagnóstico
     col_status = ws.max_column + 1
@@ -231,35 +241,42 @@ def gerar_excel(caminho_entrada, resultado: Resultado, caminho_saida,
         cel.alignment = Alignment(horizontal="center", vertical="center")
 
     for row in range(HEADER_ROW + 1, ws.max_row + 1):
-        cel_foto = ws.cell(row=row, column=fotos_col)
         partes = []
         status = "OK"
 
-        if row in dups_por_linha:
-            status = "DUPLICADA"
-            cel_foto.fill = FILL_DUP
-            cel_foto.font = FONT_DUP
-            for d in dups_por_linha[row]:
-                partes.append(
-                    f"Foto (posição {d.foto.idx_na_celula+1}) é cópia da "
-                    f"linha {d.original.row} ({_rotulo(ws, d.original.row)})"
-                )
-        elif row in linhas_originais:
-            status = "ORIGINAL (tem cópias)"
-            cel_foto.fill = FILL_ORIG
+        for col in fotos_cols:
+            chave = (row, col)
+            cel_foto = ws.cell(row=row, column=col)
 
-        if row in falhas_por_linha:
-            if status == "OK":
-                status = "NÃO VERIFICADA"
-            cel_foto.fill = cel_foto.fill if cel_foto.fill.fgColor.rgb != "00000000" else FILL_ERRO
-            for f in falhas_por_linha[row]:
-                partes.append(f"Falha no download (pos {f.idx_na_celula+1}): {f.erro}")
+            if chave in dups_por_celula:
+                status = "DUPLICADA"
+                cel_foto.fill = FILL_DUP
+                cel_foto.font = FONT_DUP
+                for d in dups_por_celula[chave]:
+                    partes.append(
+                        f"{d.foto.col_letra}{d.foto.row} é cópia de "
+                        f"{d.original.col_letra}{d.original.row} "
+                        f"({_rotulo(ws, d.original.row)})"
+                    )
+            elif chave in originais_por_celula:
+                if status != "DUPLICADA":
+                    status = "ORIGINAL (tem cópias)"
+                cel_foto.fill = FILL_ORIG
+
+            if chave in falhas_por_celula:
+                if status == "OK":
+                    status = "NÃO VERIFICADA"
+                if chave not in dups_por_celula and chave not in originais_por_celula:
+                    cel_foto.fill = FILL_ERRO
+                for f in falhas_por_celula[chave]:
+                    partes.append(
+                        f"{f.col_letra}{f.row}: falha no download ({f.erro})")
 
         ws.cell(row=row, column=col_status, value=status)
         ws.cell(row=row, column=col_detalhe, value="  |  ".join(partes))
 
     ws.column_dimensions[get_column_letter(col_status)].width = 22
-    ws.column_dimensions[get_column_letter(col_detalhe)].width = 60
+    ws.column_dimensions[get_column_letter(col_detalhe)].width = 70
 
     # aba de resumo
     _aba_resumo(wb, resultado, ws)
@@ -276,23 +293,27 @@ def _rotulo(ws, row):
 
 def _aba_resumo(wb, resultado: Resultado, ws_orig):
     ws = wb.create_sheet("Resumo Duplicatas")
-    headers = ["Linha Duplicada", "Posição na célula", "Linha da Original",
+    headers = ["Célula Duplicada", "Linha Duplicada", "Coluna Duplicada",
+               "Célula Original", "Linha da Original", "Coluna Original",
                "Razão Social (dup)", "Razão Social (original)", "URL Duplicada"]
     ws.append(headers)
     for c in range(1, len(headers) + 1):
         cel = ws.cell(row=1, column=c)
         cel.font = FONT_HDR
         cel.fill = FILL_HDR
-    for d in sorted(resultado.duplicatas, key=lambda x: x.foto.row):
+    for d in sorted(resultado.duplicatas, key=lambda x: (x.foto.row, x.foto.col)):
         ws.append([
+            f"{d.foto.col_letra}{d.foto.row}",
             d.foto.row,
-            d.foto.idx_na_celula + 1,
+            d.foto.col_letra,
+            f"{d.original.col_letra}{d.original.row}",
             d.original.row,
+            d.original.col_letra,
             ws_orig.cell(row=d.foto.row, column=3).value,
             ws_orig.cell(row=d.original.row, column=3).value,
             d.foto.url,
         ])
-    widths = [16, 18, 16, 35, 35, 70]
+    widths = [16, 14, 14, 16, 16, 14, 35, 35, 70]
     for i, w in enumerate(widths, start=1):
         ws.column_dimensions[get_column_letter(i)].width = w
 
@@ -301,10 +322,10 @@ def _aba_resumo(wb, resultado: Resultado, ws_orig):
 # Orquestração completa (usada pela app web)
 # ------------------------------------------------------------------ #
 
-def processar(caminho_entrada, caminho_saida, progress_cb=None, fotos_col=FOTOS_COL,
+def processar(caminho_entrada, caminho_saida, progress_cb=None, fotos_cols=FOTOS_COLS,
               ignorar_mesma_linha=True):
-    fotos = extrair_fotos(caminho_entrada, fotos_col=fotos_col)
+    fotos = extrair_fotos(caminho_entrada, fotos_cols=fotos_cols)
     baixar_todas(fotos, progress_cb=progress_cb)
     resultado = detectar(fotos, ignorar_mesma_linha=ignorar_mesma_linha)
-    gerar_excel(caminho_entrada, resultado, caminho_saida, fotos_col=fotos_col)
+    gerar_excel(caminho_entrada, resultado, caminho_saida, fotos_cols=fotos_cols)
     return resultado

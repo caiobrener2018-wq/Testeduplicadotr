@@ -29,16 +29,18 @@ pip install -r requirements.txt
 python app.py
 ```
 
-Abra http://localhost:5000 no navegador, envie a planilha `.xlsx`, escolha a
-coluna das fotos (padrão: D) e clique em **Verificar duplicatas**.
+Abra http://localhost:5000 no navegador, envie a planilha `.xlsx` e clique em
+**Verificar duplicatas**. A ferramenta lê automaticamente as colunas D, E e F
+de cada linha.
 
 ## Estrutura da planilha esperada
 
 - Linha 1: cabeçalho.
 - A partir da linha 2: um atendimento por linha.
-- Coluna de fotos (padrão **D**): um ou mais links de imagem. Se houver mais de
-  um link na mesma célula, coloque um por linha (quebra de linha) — a
-  ferramenta separa automaticamente.
+- Colunas de fotos (padrão **D, E e F**): cada uma pode ter um ou mais links
+  de imagem. Se houver mais de um link na mesma célula, coloque um por linha
+  (quebra de linha) — a ferramenta separa automaticamente. As três colunas
+  são comparadas entre si e entre linhas diferentes.
 
 A coluna C (Razão Social) é usada nos rótulos do relatório, se existir.
 
@@ -81,7 +83,8 @@ resultado logo após o processamento, então não há perda prática.
 
 ## Ajustes comuns (arquivo `detector.py`)
 
-- `FOTOS_COL` — coluna padrão das fotos (4 = D).
+- `FOTOS_COLS` — lista de colunas onde ficam as fotos (padrão `[4, 5, 6]` =
+  D, E, F). Para incluir mais colunas, basta adicionar o número (ex.: `7` = G).
 - `MAX_WORKERS` — nº de downloads em paralelo (padrão 8).
 - `DOWNLOAD_TIMEOUT` — tempo máximo por imagem, em segundos.
 - `AUTH_HEADERS` — **importante:** se os links do Sebrae passarem a exigir

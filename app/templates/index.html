@@ -173,7 +173,7 @@
             d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"/>
         </svg>
         <b>Clique para escolher a planilha ou arraste aqui</b>
-        <small>Formato .xlsx — a coluna de fotos pode ter vários links por célula</small>
+        <small>Formato .xlsx — lê as colunas D, E e F; cada célula pode ter vários links</small>
       </div>
       <div class="arquivo-nome" id="arquivo-nome">
         <span>📄</span><span id="nome-texto"></span>
@@ -181,23 +181,16 @@
       <input type="file" id="input-arquivo" accept=".xlsx,.xlsm" hidden>
 
       <div class="opcoes">
-        <div class="campo">
-          <label for="coluna">Coluna das fotos</label>
-          <select id="coluna">
-            <option value="4" selected>D — Fotos</option>
-            <option value="5">E</option>
-            <option value="6">F</option>
-            <option value="3">C</option>
-          </select>
-        </div>
         <button class="btn" id="btn-verificar" disabled>Verificar duplicatas</button>
       </div>
 
       <div class="dica">
-        <b>Como funciona a detecção:</b> duas fotos são consideradas duplicadas
-        quando o arquivo é idêntico (mesmo conteúdo). A primeira vez que uma
-        imagem aparece é tratada como original; as repetições seguintes são
-        marcadas como cópias, indicando de qual linha vieram.
+        <b>Como funciona a detecção:</b> a ferramenta lê as colunas <b>D, E e F</b>
+        de cada atendimento e compara todas as fotos entre si. Duas fotos são
+        consideradas duplicadas quando o arquivo é idêntico (mesmo conteúdo).
+        A primeira vez que uma imagem aparece é tratada como original; as
+        repetições seguintes são marcadas como cópias, indicando de qual
+        linha e coluna vieram.
       </div>
       <div class="erro-box" id="erro-box"></div>
     </div>
@@ -276,7 +269,6 @@ $("#btn-verificar").addEventListener("click", async () => {
   $("#erro-box").style.display = "none";
   const fd = new FormData();
   fd.append("arquivo", arquivo);
-  fd.append("fotos_col", $("#coluna").value);
   try{
     const r = await fetch("/processar", {method:"POST", body:fd});
     const j = await r.json();
@@ -318,9 +310,9 @@ function mostrarResultado(j, jobId){
       const el = document.createElement("div");
       el.className = "par";
       el.innerHTML =
-        `<span class="tag-linha">Linha ${d.linha_dup}${d.pos>1?" · foto "+d.pos:""}</span>`+
+        `<span class="tag-linha">Linha ${d.linha_dup} · coluna ${d.coluna_dup}${d.pos>1?" · foto "+d.pos:""}</span>`+
         `<span class="seta">é cópia de →</span>`+
-        `<span class="tag-orig">Linha ${d.linha_orig} (original)</span>`+
+        `<span class="tag-orig">Linha ${d.linha_orig} · coluna ${d.coluna_orig} (original)</span>`+
         `<a href="${d.url}" target="_blank" rel="noopener">abrir foto</a>`;
       lista.appendChild(el);
     });
@@ -333,7 +325,7 @@ function mostrarResultado(j, jobId){
     j.falhas.forEach(f => {
       const el = document.createElement("div");
       el.className = "falha-item";
-      el.textContent = `Linha ${f.linha}${f.pos>1?" (foto "+f.pos+")":""}: ${f.erro}`;
+      el.textContent = `Linha ${f.linha}, coluna ${f.coluna}${f.pos>1?" (foto "+f.pos+")":""}: ${f.erro}`;
       lf.appendChild(el);
     });
   } else {
