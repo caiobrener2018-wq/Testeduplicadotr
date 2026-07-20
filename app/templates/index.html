@@ -3,238 +3,561 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Verificador de Fotos · Sebrae na sua Empresa</title>
+<title>Verificador de Fotos Duplicadas - Sebrae na sua Empresa</title>
+<meta name="description" content="Ferramenta de auditoria para identificar fotos duplicadas em planilhas de atendimentos do Sebrae na sua Empresa.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --tinta:#0f2e3d;        /* azul-petróleo profundo */
-    --tinta-2:#164b5f;
-    --papel:#f7f4ec;        /* creme quente */
-    --papel-2:#ffffff;
-    --ambar:#e08a1e;        /* âmbar de destaque */
-    --ambar-claro:#f6d9a8;
-    --alerta:#c0392b;
-    --alerta-bg:#fbe4e0;
-    --ok:#1f7a4d;
-    --linha:#dcd6c8;
-    --texto:#243b43;
-    --texto-suave:#5f7178;
+  :root {
+    --navy:       #1B2A4A;
+    --navy-deep:  #0F1D35;
+    --sebrae-blue:#0066B3;
+    --sky:        #7CC8F0;
+    --sky-light:  #B8E2F8;
+    --sky-pale:   #E8F4FC;
+    --white:      #FFFFFF;
+    --gray-50:    #F8FAFC;
+    --gray-100:   #F1F5F9;
+    --gray-200:   #E2E8F0;
+    --gray-300:   #CBD5E1;
+    --gray-500:   #64748B;
+    --gray-600:   #475569;
+    --gray-700:   #334155;
+    --red:        #DC2626;
+    --red-bg:     #FEF2F2;
+    --red-border: #FECACA;
+    --green:      #16A34A;
+    --green-bg:   #F0FDF4;
+    --green-border:#BBF7D0;
+    --shadow-sm:  0 1px 2px rgba(27,42,74,.06);
+    --shadow:     0 4px 16px rgba(27,42,74,.08);
+    --shadow-lg:  0 12px 40px rgba(27,42,74,.12);
+    --radius:     12px;
+    --radius-lg:  16px;
+    --transition: .2s cubic-bezier(.4,0,.2,1);
   }
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{
-    font-family:"Segoe UI",-apple-system,Roboto,Helvetica,sans-serif;
-    background:var(--papel);color:var(--texto);line-height:1.5;
-    min-height:100vh;
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--gray-50); color: var(--gray-700);
+    line-height: 1.6; min-height: 100vh; overflow-x: hidden;
   }
-  .barra-topo{
-    background:var(--tinta);color:var(--papel);
-    padding:14px 28px;display:flex;align-items:center;gap:14px;
-    border-bottom:3px solid var(--ambar);
+
+  /* ===== HEADER ===== */
+  .header {
+    background: var(--navy);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,.1);
   }
-  .selo{
-    width:34px;height:34px;border-radius:7px;flex-shrink:0;
-    background:linear-gradient(135deg,var(--ambar),#c8760f);
-    display:grid;place-items:center;font-weight:800;color:#fff;font-size:15px;
+  .header::before {
+    content: ''; position: absolute;
+    top: -30px; right: -40px;
+    width: 200px; height: 120px;
+    background: var(--sky);
+    transform: skewX(-20deg);
+    opacity: .18;
   }
-  .barra-topo b{font-size:15px;letter-spacing:.2px}
-  .barra-topo span{font-size:12px;color:#b9cdd4;display:block;font-weight:400}
-  .wrap{max-width:920px;margin:0 auto;padding:38px 24px 70px}
-  .hero{margin-bottom:30px}
-  .eyebrow{
-    font-size:12px;text-transform:uppercase;letter-spacing:2px;
-    color:var(--ambar);font-weight:700;margin-bottom:10px;
+  .header::after {
+    content: ''; position: absolute;
+    top: 10px; right: 60px;
+    width: 120px; height: 70px;
+    background: var(--sebrae-blue);
+    transform: skewX(-20deg);
+    opacity: .12;
   }
-  h1{
-    font-size:30px;line-height:1.15;color:var(--tinta);
-    font-weight:800;letter-spacing:-.5px;margin-bottom:12px;max-width:20ch;
+  .header-inner {
+    max-width: 1060px; margin: 0 auto;
+    padding: 16px 28px;
+    display: flex; align-items: center; gap: 20px;
+    position: relative; z-index: 1;
   }
-  .hero p{color:var(--texto-suave);max-width:58ch;font-size:15px}
-  .cartao{
-    background:var(--papel-2);border:1px solid var(--linha);
-    border-radius:14px;padding:26px;margin-bottom:22px;
-    box-shadow:0 1px 2px rgba(15,46,61,.04);
+  .header-logos {
+    display: flex; align-items: center; gap: 28px; flex-shrink: 0;
   }
-  .drop{
-    border:2px dashed #c3bca9;border-radius:12px;padding:34px 24px;
-    text-align:center;cursor:pointer;transition:.15s;background:#fbf9f3;
+  .logo-sebrae-wrap {
+    display: flex; align-items: center;
   }
-  .drop:hover,.drop.hover{border-color:var(--ambar);background:#fbf3e4}
-  .drop svg{width:40px;height:40px;stroke:var(--tinta-2);margin-bottom:10px}
-  .drop b{color:var(--tinta);display:block;font-size:15px}
-  .drop small{color:var(--texto-suave)}
-  .arquivo-nome{
-    margin-top:14px;font-size:14px;color:var(--tinta);font-weight:600;
-    display:none;align-items:center;gap:8px;justify-content:center;
+  .logo-sebrae-wrap img {
+    height: 36px; width: auto; display: block;
   }
-  .opcoes{
-    display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap;
-    margin-top:20px;padding-top:20px;border-top:1px solid var(--linha);
+  .logo-sse-wrap {
+    display: flex; align-items: center;
   }
-  .campo{display:flex;flex-direction:column;gap:5px}
-  .campo label{font-size:12px;font-weight:600;color:var(--texto-suave);
-    text-transform:uppercase;letter-spacing:.5px}
-  .campo select{
-    padding:9px 12px;border:1px solid var(--linha);border-radius:8px;
-    font-size:14px;background:#fff;color:var(--texto);min-width:150px;
+  .logo-sse-wrap img {
+    height: 42px; width: auto; display: block;
   }
-  .btn{
-    background:var(--ambar);color:#fff;border:none;border-radius:9px;
-    padding:12px 26px;font-size:15px;font-weight:700;cursor:pointer;
-    transition:.15s;margin-left:auto;
+  .header-sep {
+    width: 1px; height: 36px;
+    background: rgba(255,255,255,.2); flex-shrink: 0;
   }
-  .btn:hover{background:#c8760f}
-  .btn:disabled{background:#c9c1b0;cursor:not-allowed}
-  .dica{
-    font-size:13px;color:var(--texto-suave);margin-top:16px;
-    padding:12px 14px;background:#f2f7f8;border-left:3px solid var(--tinta-2);
-    border-radius:0 8px 8px 0;
+  .header-text {
+    display: flex; flex-direction: column; gap: 2px;
   }
-  /* progresso */
-  #painel{display:none}
-  .etapa-txt{font-size:14px;color:var(--tinta);font-weight:600;margin-bottom:12px}
-  .trilho{height:12px;background:#eae4d6;border-radius:20px;overflow:hidden}
-  .preenche{
-    height:100%;width:0;border-radius:20px;transition:width .4s;
-    background:linear-gradient(90deg,var(--tinta-2),var(--ambar));
+  .header-text b {
+    font-size: 15px; font-weight: 700;
+    color: var(--white); letter-spacing: .2px;
   }
-  .contador{font-size:13px;color:var(--texto-suave);margin-top:8px;text-align:right}
-  /* resultado */
-  #resultado{display:none}
-  .placar{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px}
-  .metrica{
-    background:var(--papel-2);border:1px solid var(--linha);border-radius:11px;
-    padding:16px;text-align:center;
+  .header-text span {
+    font-size: 12px; color: var(--sky-light);
+    font-weight: 500; letter-spacing: .3px;
   }
-  .metrica .num{font-size:26px;font-weight:800;color:var(--tinta);line-height:1}
-  .metrica .rot{font-size:12px;color:var(--texto-suave);margin-top:6px;
-    text-transform:uppercase;letter-spacing:.5px}
-  .metrica.destaque{border-color:var(--alerta);background:var(--alerta-bg)}
-  .metrica.destaque .num{color:var(--alerta)}
-  .btn-baixar{
-    display:inline-flex;align-items:center;gap:9px;background:var(--tinta);
-    color:#fff;padding:13px 24px;border-radius:9px;font-weight:700;
-    text-decoration:none;font-size:15px;transition:.15s;margin-bottom:24px;
+  .header-tag {
+    margin-left: auto;
+    background: rgba(124,200,240,.15);
+    border: 1px solid rgba(124,200,240,.25);
+    padding: 6px 14px; border-radius: 20px;
+    font-size: 11px; font-weight: 600;
+    color: var(--sky);
+    letter-spacing: .5px; text-transform: uppercase;
   }
-  .btn-baixar:hover{background:var(--tinta-2)}
-  .btn-baixar svg{width:18px;height:18px;stroke:#fff}
-  h2{font-size:17px;color:var(--tinta);margin:24px 0 12px;font-weight:700}
-  .par{
-    display:flex;align-items:center;gap:14px;padding:13px 16px;
-    background:var(--papel-2);border:1px solid var(--linha);
-    border-left:4px solid var(--alerta);border-radius:9px;margin-bottom:8px;
-    font-size:14px;flex-wrap:wrap;
+
+  /* ===== GRADIENT STRIP ===== */
+  .geo-strip {
+    height: 5px;
+    background: linear-gradient(90deg, var(--sebrae-blue) 0%, var(--sky) 50%, var(--sebrae-blue) 100%);
   }
-  .tag-linha{
-    background:var(--alerta-bg);color:var(--alerta);font-weight:700;
-    padding:3px 10px;border-radius:6px;font-size:13px;white-space:nowrap;
+
+  /* ===== HERO ===== */
+  .hero-section {
+    background: linear-gradient(160deg, var(--navy) 0%, var(--navy-deep) 100%);
+    padding: 48px 28px 56px; position: relative; overflow: hidden;
   }
-  .seta{color:var(--texto-suave);font-weight:700}
-  .tag-orig{
-    background:#e4f0e9;color:var(--ok);font-weight:700;
-    padding:3px 10px;border-radius:6px;font-size:13px;white-space:nowrap;
+  .hero-section::before {
+    content: ''; position: absolute;
+    top: -40px; right: -20px;
+    width: 300px; height: 180px;
+    background: var(--sky);
+    transform: skewX(-20deg) skewY(-5deg);
+    opacity: .06; border-radius: 8px;
   }
-  .par a{color:var(--tinta-2);font-size:12px;margin-left:auto;text-decoration:none}
-  .par a:hover{text-decoration:underline}
-  .vazio{
-    padding:22px;text-align:center;color:var(--ok);font-weight:600;
-    background:#e4f0e9;border-radius:10px;
+  .hero-section::after {
+    content: ''; position: absolute;
+    bottom: -60px; left: 10%;
+    width: 200px; height: 120px;
+    background: var(--sebrae-blue);
+    transform: skewX(-25deg);
+    opacity: .08; border-radius: 6px;
   }
-  .falha-item{font-size:13px;color:var(--texto-suave);padding:6px 0;
-    border-bottom:1px dashed var(--linha)}
-  details summary{cursor:pointer;font-weight:600;color:var(--tinta-2);font-size:14px}
-  .erro-box{background:var(--alerta-bg);color:var(--alerta);padding:14px 16px;
-    border-radius:9px;font-size:14px;display:none;margin-top:16px}
-  @media(max-width:560px){.placar{grid-template-columns:repeat(2,1fr)}
-    .opcoes{flex-direction:column;align-items:stretch}.btn{margin-left:0}}
+  .hero-geo-1 {
+    position: absolute; top: 20px; right: 8%;
+    width: 80px; height: 50px;
+    background: var(--sky); opacity: .1;
+    transform: skewX(-18deg); border-radius: 4px;
+  }
+  .hero-geo-2 {
+    position: absolute; bottom: 30px; right: 15%;
+    width: 60px; height: 40px;
+    background: var(--sebrae-blue); opacity: .12;
+    transform: skewX(-18deg); border-radius: 4px;
+  }
+  .hero-inner {
+    max-width: 1060px; margin: 0 auto;
+    position: relative; z-index: 1;
+  }
+  .hero-eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 12px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 2px;
+    color: var(--sky); margin-bottom: 16px;
+  }
+  .hero-eyebrow::before {
+    content: ''; width: 24px; height: 2px;
+    background: var(--sky); border-radius: 2px;
+  }
+  .hero-inner h1 {
+    font-size: 32px; line-height: 1.2; font-weight: 800;
+    color: var(--white); max-width: 24ch;
+    margin-bottom: 14px; letter-spacing: -.5px;
+  }
+  .hero-inner p {
+    color: var(--sky-light); max-width: 56ch;
+    font-size: 15px; line-height: 1.7; opacity: .85;
+  }
+
+  /* ===== MAIN ===== */
+  .main-wrap {
+    max-width: 1060px; margin: -32px auto 0;
+    padding: 0 28px 80px; position: relative; z-index: 2;
+  }
+
+  /* ===== CARD ===== */
+  .card {
+    background: var(--white); border: 1px solid var(--gray-200);
+    border-radius: var(--radius-lg); padding: 28px; margin-bottom: 20px;
+    box-shadow: var(--shadow); transition: box-shadow var(--transition);
+    animation: fadeInUp .5s ease forwards;
+  }
+  .card:hover { box-shadow: var(--shadow-lg); }
+
+  /* ===== DROP ZONE ===== */
+  .drop {
+    border: 2px dashed var(--gray-300); border-radius: var(--radius);
+    padding: 42px 28px; text-align: center;
+    cursor: pointer; transition: all var(--transition);
+    background: var(--gray-50);
+  }
+  .drop:hover, .drop.hover {
+    border-color: var(--sebrae-blue); background: var(--sky-pale);
+    transform: translateY(-1px);
+  }
+  .drop-icon {
+    width: 56px; height: 56px;
+    background: linear-gradient(135deg, var(--sebrae-blue), var(--sky));
+    border-radius: 14px; display: inline-grid; place-items: center;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 12px rgba(0,102,179,.2);
+  }
+  .drop-icon svg { width: 26px; height: 26px; stroke: white; }
+  .drop b { color: var(--navy); display: block; font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+  .drop small { color: var(--gray-500); font-size: 13px; }
+
+  .arquivo-nome {
+    margin-top: 16px; font-size: 14px; color: var(--navy); font-weight: 600;
+    display: none; align-items: center; gap: 8px; justify-content: center;
+    padding: 10px 16px; background: var(--sky-pale);
+    border: 1px solid var(--sky-light); border-radius: 8px;
+  }
+  .arquivo-nome .file-badge {
+    background: var(--sebrae-blue); color: white;
+    font-size: 11px; font-weight: 700;
+    padding: 2px 8px; border-radius: 4px; letter-spacing: .5px;
+  }
+
+  .opcoes {
+    display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap;
+    margin-top: 22px; padding-top: 22px; border-top: 1px solid var(--gray-200);
+  }
+
+  .btn {
+    background: linear-gradient(135deg, var(--sebrae-blue), #004D8C);
+    color: white; border: none; border-radius: 10px;
+    padding: 13px 28px; font-size: 15px; font-weight: 700;
+    cursor: pointer; transition: all var(--transition);
+    margin-left: auto; display: inline-flex; align-items: center; gap: 8px;
+    box-shadow: 0 4px 12px rgba(0,102,179,.25);
+    font-family: inherit; letter-spacing: .2px;
+  }
+  .btn:hover {
+    background: linear-gradient(135deg, #004D8C, #003A6B);
+    box-shadow: 0 6px 20px rgba(0,102,179,.35);
+    transform: translateY(-1px);
+  }
+  .btn:disabled { background: var(--gray-300); box-shadow: none; cursor: not-allowed; transform: none; }
+  .btn svg { width: 18px; height: 18px; stroke: white; }
+
+  .dica {
+    font-size: 13px; color: var(--gray-600); margin-top: 18px;
+    padding: 14px 18px; background: var(--sky-pale);
+    border-left: 4px solid var(--sebrae-blue);
+    border-radius: 0 10px 10px 0; line-height: 1.7;
+  }
+  .dica b { color: var(--navy); }
+
+  .erro-box {
+    background: var(--red-bg); color: var(--red);
+    padding: 14px 18px; border-radius: 10px;
+    border: 1px solid var(--red-border);
+    font-size: 14px; font-weight: 600;
+    display: none; margin-top: 18px;
+  }
+
+  /* ===== PROGRESS ===== */
+  #painel { display: none; }
+  .etapa-txt {
+    font-size: 14px; color: var(--navy); font-weight: 700;
+    margin-bottom: 14px; display: flex; align-items: center; gap: 10px;
+  }
+  .etapa-txt::before {
+    content: ''; width: 10px; height: 10px; border-radius: 50%;
+    background: var(--sebrae-blue);
+    animation: pulse-dot 1.2s ease-in-out infinite;
+  }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: .4; transform: scale(.7); }
+  }
+  .trilho { height: 10px; background: var(--gray-200); border-radius: 20px; overflow: hidden; }
+  .preenche {
+    height: 100%; width: 0; border-radius: 20px; transition: width .4s ease;
+    background: linear-gradient(90deg, var(--sebrae-blue), var(--sky));
+    position: relative;
+  }
+  .preenche::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.3), transparent);
+    animation: shimmer 2s infinite;
+  }
+  @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+  .contador { font-size: 13px; color: var(--gray-500); margin-top: 10px; text-align: right; font-weight: 500; }
+
+  /* ===== RESULTS ===== */
+  #resultado { display: none; }
+  .placar { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 24px; }
+  .metrica {
+    background: var(--white); border: 1px solid var(--gray-200);
+    border-radius: var(--radius); padding: 20px; text-align: center;
+    transition: all var(--transition); position: relative; overflow: hidden;
+  }
+  .metrica::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0;
+    height: 3px; background: var(--sebrae-blue);
+  }
+  .metrica:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+  .metrica .num { font-size: 30px; font-weight: 800; color: var(--navy); line-height: 1; }
+  .metrica .rot {
+    font-size: 11px; color: var(--gray-500); margin-top: 8px;
+    text-transform: uppercase; letter-spacing: .8px; font-weight: 600;
+  }
+  .metrica.destaque { border-color: var(--red-border); background: var(--red-bg); }
+  .metrica.destaque::before { background: var(--red); }
+  .metrica.destaque .num { color: var(--red); }
+
+  .btn-baixar {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: linear-gradient(135deg, var(--navy), var(--navy-deep));
+    color: white; padding: 14px 28px; border-radius: 10px;
+    font-weight: 700; text-decoration: none; font-size: 15px;
+    transition: all var(--transition); margin-bottom: 28px;
+    box-shadow: 0 4px 16px rgba(27,42,74,.2); font-family: inherit;
+  }
+  .btn-baixar:hover {
+    background: linear-gradient(135deg, var(--navy-deep), #0a1425);
+    box-shadow: 0 6px 24px rgba(27,42,74,.3); transform: translateY(-1px);
+  }
+  .btn-baixar svg { width: 18px; height: 18px; stroke: white; }
+
+  h2 {
+    font-size: 17px; color: var(--navy); margin: 28px 0 14px; font-weight: 700;
+    display: flex; align-items: center; gap: 8px;
+  }
+  h2::before {
+    content: ''; width: 4px; height: 20px;
+    background: var(--sebrae-blue); border-radius: 2px; flex-shrink: 0;
+  }
+
+  .par {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 18px; background: var(--white);
+    border: 1px solid var(--gray-200); border-left: 4px solid var(--red);
+    border-radius: 10px; margin-bottom: 8px;
+    font-size: 14px; flex-wrap: wrap; transition: all var(--transition);
+  }
+  .par:hover { box-shadow: var(--shadow-sm); border-left-color: #B91C1C; }
+  .tag-linha {
+    background: var(--red-bg); color: var(--red); font-weight: 700;
+    padding: 4px 12px; border-radius: 6px; font-size: 13px;
+    white-space: nowrap; border: 1px solid var(--red-border);
+  }
+  .seta { color: var(--gray-500); font-weight: 700; font-size: 13px; }
+  .tag-orig {
+    background: var(--green-bg); color: var(--green); font-weight: 700;
+    padding: 4px 12px; border-radius: 6px; font-size: 13px;
+    white-space: nowrap; border: 1px solid var(--green-border);
+  }
+  .par a {
+    color: var(--sebrae-blue); font-size: 12px; margin-left: auto;
+    text-decoration: none; font-weight: 600; transition: color var(--transition);
+  }
+  .par a:hover { color: var(--navy); text-decoration: underline; }
+  .vazio {
+    padding: 24px; text-align: center; color: var(--green); font-weight: 700;
+    background: var(--green-bg); border: 1px solid var(--green-border);
+    border-radius: 10px; font-size: 15px;
+  }
+  .falha-item {
+    font-size: 13px; color: var(--gray-600); padding: 8px 0;
+    border-bottom: 1px dashed var(--gray-200);
+  }
+  details summary {
+    cursor: pointer; font-weight: 600; color: var(--sebrae-blue);
+    font-size: 14px; transition: color var(--transition);
+  }
+  details summary:hover { color: var(--navy); }
+
+  /* ===== FOOTER ===== */
+  .footer {
+    background: var(--navy); padding: 24px 28px;
+    position: relative; overflow: hidden;
+  }
+  .footer::before {
+    content: ''; position: absolute;
+    bottom: -20px; left: 5%;
+    width: 140px; height: 60px;
+    background: var(--sebrae-blue);
+    transform: skewX(-20deg); opacity: .08;
+  }
+  .footer-inner {
+    max-width: 1060px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: center;
+    gap: 24px; position: relative; z-index: 1; flex-wrap: wrap;
+  }
+  .footer-logos {
+    display: flex; align-items: center; gap: 32px;
+  }
+  .footer-logo-sebrae {
+    height: 36px; width: auto;
+  }
+  .footer-logo-sse {
+    height: 38px; width: auto; opacity: .9;
+  }
+  .footer-inner span {
+    font-size: 12px; color: rgba(255,255,255,.45); font-weight: 500;
+  }
+
+  /* ===== ANIMATIONS ===== */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 640px) {
+    .placar { grid-template-columns: repeat(2, 1fr); }
+    .opcoes { flex-direction: column; align-items: stretch; }
+    .btn { margin-left: 0; justify-content: center; }
+    .hero-inner h1 { font-size: 24px; }
+    .header-tag { display: none; }
+    .par { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .par a { margin-left: 0; }
+  }
 </style>
 </head>
 <body>
-  <div class="barra-topo">
-    <div class="selo">✓</div>
-    <div>
-      <b>Verificador de Fotos de Atendimento</b>
-      <span>Sebrae na sua Empresa · controle de fotos duplicadas</span>
-    </div>
-  </div>
 
-  <div class="wrap">
-    <div class="hero">
-      <div class="eyebrow">Auditoria de comprovações</div>
-      <h1>Envie a planilha e encontre fotos reenviadas entre atendimentos</h1>
-      <p>A ferramenta baixa cada foto informada, compara o conteúdo dos arquivos
-         e aponta quais atendimentos usaram uma imagem que já havia sido enviada
-         em outro. O resultado sai numa planilha com as duplicatas destacadas.</p>
+  <header class="header">
+    <div class="header-inner">
+      <div class="header-logos">
+        <div class="logo-sebrae-wrap">
+          <img src="/static/img/logo_sebrae.png" alt="Sebrae">
+        </div>
+        <div class="logo-sse-wrap">
+          <img src="/static/img/logo_sse.png" alt="Sebrae na sua Empresa">
+        </div>
+      </div>
+      <div class="header-sep"></div>
+      <div class="header-text">
+        <b>Verificador de Fotos</b>
+        <span>Controle de fotos duplicadas</span>
+      </div>
+      <div class="header-tag">Ferramenta Interna</div>
     </div>
+  </header>
+  <div class="geo-strip"></div>
 
-    <!-- Envio -->
-    <div class="cartao" id="cartao-envio">
+  <section class="hero-section">
+    <div class="hero-geo-1"></div>
+    <div class="hero-geo-2"></div>
+    <div class="hero-inner">
+      <div class="hero-eyebrow">Auditoria de comprovacoes</div>
+      <h1>Identifique fotos duplicadas nos atendimentos</h1>
+      <p>Envie a planilha de atendimentos e a ferramenta baixa cada foto, compara o conteudo
+         dos arquivos e aponta quais atendimentos reutilizaram uma imagem ja enviada.
+         O resultado sai numa planilha com as duplicatas destacadas.</p>
+    </div>
+  </section>
+
+  <main class="main-wrap">
+    <div class="card" id="cartao-envio">
       <div class="drop" id="drop">
-        <svg fill="none" viewBox="0 0 24 24" stroke-width="1.6">
-          <path stroke-linecap="round" stroke-linejoin="round"
-            d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"/>
-        </svg>
+        <div class="drop-icon">
+          <svg fill="none" viewBox="0 0 24 24" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"/>
+          </svg>
+        </div>
         <b>Clique para escolher a planilha ou arraste aqui</b>
-        <small>Formato .xlsx — lê as colunas D, E e F; cada célula pode ter vários links</small>
+        <small>Formato .xlsx - le as colunas D, E e F; cada celula pode ter varios links</small>
       </div>
+
       <div class="arquivo-nome" id="arquivo-nome">
-        <span>📄</span><span id="nome-texto"></span>
+        <span class="file-badge">XLSX</span>
+        <span id="nome-texto"></span>
       </div>
+
       <input type="file" id="input-arquivo" accept=".xlsx,.xlsm" hidden>
 
       <div class="opcoes">
-        <button class="btn" id="btn-verificar" disabled>Verificar duplicatas</button>
+        <button class="btn" id="btn-verificar" disabled>
+          <svg fill="none" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/>
+          </svg>
+          Verificar duplicatas
+        </button>
       </div>
 
       <div class="dica">
-        <b>Como funciona a detecção:</b> a ferramenta lê as colunas <b>D, E e F</b>
-        de cada atendimento e compara todas as fotos entre si. Duas fotos são
-        consideradas duplicadas quando o arquivo é idêntico (mesmo conteúdo).
-        A primeira vez que uma imagem aparece é tratada como original; as
-        repetições seguintes são marcadas como cópias, indicando de qual
+        <b>Como funciona a deteccao:</b> a ferramenta le as colunas <b>D, E e F</b>
+        de cada atendimento e compara todas as fotos entre si. Duas fotos sao
+        consideradas duplicadas quando o arquivo e identico (mesmo conteudo).
+        A primeira vez que uma imagem aparece e tratada como original; as
+        repeticoes seguintes sao marcadas como copias, indicando de qual
         linha e coluna vieram.
       </div>
       <div class="erro-box" id="erro-box"></div>
     </div>
 
-    <!-- Progresso -->
-    <div class="cartao" id="painel">
-      <div class="etapa-txt" id="etapa">Preparando…</div>
+    <div class="card" id="painel">
+      <div class="etapa-txt" id="etapa">Preparando...</div>
       <div class="trilho"><div class="preenche" id="preenche"></div></div>
       <div class="contador" id="contador"></div>
     </div>
 
-    <!-- Resultado -->
     <div id="resultado">
-      <div class="placar">
-        <div class="metrica"><div class="num" id="m-links">0</div>
-          <div class="rot">Fotos lidas</div></div>
-        <div class="metrica"><div class="num" id="m-baixadas">0</div>
-          <div class="rot">Baixadas</div></div>
-        <div class="metrica destaque"><div class="num" id="m-dups">0</div>
-          <div class="rot">Duplicadas</div></div>
-        <div class="metrica"><div class="num" id="m-falhas">0</div>
-          <div class="rot">Não verificadas</div></div>
+      <div class="card">
+        <div class="placar">
+          <div class="metrica">
+            <div class="num" id="m-links">0</div>
+            <div class="rot">Fotos lidas</div>
+          </div>
+          <div class="metrica">
+            <div class="num" id="m-baixadas">0</div>
+            <div class="rot">Baixadas</div>
+          </div>
+          <div class="metrica destaque">
+            <div class="num" id="m-dups">0</div>
+            <div class="rot">Duplicadas</div>
+          </div>
+          <div class="metrica">
+            <div class="num" id="m-falhas">0</div>
+            <div class="rot">Nao verificadas</div>
+          </div>
+        </div>
+
+        <a class="btn-baixar" id="link-download" href="#">
+          <svg fill="none" viewBox="0 0 24 24" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/>
+          </svg>
+          Baixar planilha com duplicatas destacadas
+        </a>
       </div>
 
-      <a class="btn-baixar" id="link-download" href="#">
-        <svg fill="none" viewBox="0 0 24 24" stroke-width="1.8">
-          <path stroke-linecap="round" stroke-linejoin="round"
-            d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/>
-        </svg>
-        Baixar planilha com duplicatas destacadas
-      </a>
+      <div class="card">
+        <h2>Duplicatas encontradas</h2>
+        <div id="lista-dups"></div>
 
-      <h2>Duplicatas encontradas</h2>
-      <div id="lista-dups"></div>
-
-      <div id="bloco-falhas" style="display:none">
-        <h2>Fotos que não puderam ser verificadas</h2>
-        <details>
-          <summary id="falhas-resumo">Ver detalhes</summary>
-          <div id="lista-falhas" style="margin-top:10px"></div>
-        </details>
+        <div id="bloco-falhas" style="display:none">
+          <h2>Fotos que nao puderam ser verificadas</h2>
+          <details>
+            <summary id="falhas-resumo">Ver detalhes</summary>
+            <div id="lista-falhas" style="margin-top:10px"></div>
+          </details>
+        </div>
       </div>
     </div>
-  </div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-logos">
+        <img src="/static/img/logo_sebrae.png" alt="Sebrae" class="footer-logo-sebrae">
+        <img src="/static/img/logo_sse.png" alt="Sebrae na sua Empresa" class="footer-logo-sse">
+      </div>
+      <span>Verificador de Fotos Duplicadas - Ferramenta interna</span>
+    </div>
+  </footer>
 
 <script>
 const $ = s => document.querySelector(s);
@@ -242,23 +565,24 @@ const input = $("#input-arquivo");
 let arquivo = null, timer = null;
 
 $("#drop").addEventListener("click", () => input.click());
-$("#drop").addEventListener("dragover", e => {e.preventDefault();$("#drop").classList.add("hover")});
+$("#drop").addEventListener("dragover", e => { e.preventDefault(); $("#drop").classList.add("hover"); });
 $("#drop").addEventListener("dragleave", () => $("#drop").classList.remove("hover"));
 $("#drop").addEventListener("drop", e => {
-  e.preventDefault();$("#drop").classList.remove("hover");
+  e.preventDefault(); $("#drop").classList.remove("hover");
   if(e.dataTransfer.files.length) escolher(e.dataTransfer.files[0]);
 });
 input.addEventListener("change", () => { if(input.files.length) escolher(input.files[0]); });
 
-function escolher(f){
-  if(!/\.(xlsx|xlsm)$/i.test(f.name)){ mostrarErro("Envie um arquivo .xlsx"); return; }
+function escolher(f) {
+  if(!/\.(xlsx|xlsm)$/i.test(f.name)) { mostrarErro("Envie um arquivo .xlsx"); return; }
   arquivo = f;
   $("#nome-texto").textContent = f.name;
   $("#arquivo-nome").style.display = "flex";
   $("#btn-verificar").disabled = false;
   $("#erro-box").style.display = "none";
 }
-function mostrarErro(msg){
+
+function mostrarErro(msg) {
   const e = $("#erro-box"); e.textContent = msg; e.style.display = "block";
 }
 
@@ -269,29 +593,36 @@ $("#btn-verificar").addEventListener("click", async () => {
   $("#erro-box").style.display = "none";
   const fd = new FormData();
   fd.append("arquivo", arquivo);
-  try{
-    const r = await fetch("/processar", {method:"POST", body:fd});
+  try {
+    const r = await fetch("/processar", { method: "POST", body: fd });
     const j = await r.json();
-    if(j.erro){ mostrarErro(j.erro); $("#btn-verificar").disabled = false; return; }
+    if(j.erro) { mostrarErro(j.erro); $("#btn-verificar").disabled = false; return; }
     $("#painel").style.display = "block";
     acompanhar(j.job_id);
-  }catch(e){ mostrarErro("Falha ao enviar. Tente novamente."); $("#btn-verificar").disabled = false; }
+  } catch(e) {
+    mostrarErro("Falha ao enviar. Tente novamente.");
+    $("#btn-verificar").disabled = false;
+  }
 });
 
-function acompanhar(jobId){
+function acompanhar(jobId) {
   timer = setInterval(async () => {
     const r = await fetch("/status/" + jobId);
     const j = await r.json();
-    $("#etapa").textContent = j.etapa || "Processando…";
-    if(j.pct != null){ $("#preenche").style.width = j.pct + "%"; }
-    if(j.total){ $("#contador").textContent = `${j.feito||0} de ${j.total} fotos`; }
-    if(j.status === "concluido"){ clearInterval(timer); mostrarResultado(j, jobId); }
-    if(j.status === "erro"){ clearInterval(timer); mostrarErro(j.etapa);
-      $("#painel").style.display="none"; $("#btn-verificar").disabled=false; }
+    $("#etapa").textContent = j.etapa || "Processando...";
+    if(j.pct != null) { $("#preenche").style.width = j.pct + "%"; }
+    if(j.total) { $("#contador").textContent = j.feito + " de " + j.total + " fotos"; }
+    if(j.status === "concluido") { clearInterval(timer); mostrarResultado(j, jobId); }
+    if(j.status === "erro") {
+      clearInterval(timer);
+      mostrarErro(j.etapa);
+      $("#painel").style.display = "none";
+      $("#btn-verificar").disabled = false;
+    }
   }, 700);
 }
 
-function mostrarResultado(j, jobId){
+function mostrarResultado(j, jobId) {
   $("#painel").style.display = "none";
   $("#resultado").style.display = "block";
   $("#btn-verificar").disabled = false;
@@ -303,35 +634,35 @@ function mostrarResultado(j, jobId){
   $("#link-download").href = "/download/" + jobId;
 
   const lista = $("#lista-dups"); lista.innerHTML = "";
-  if(!j.duplicatas.length){
+  if(!j.duplicatas.length) {
     lista.innerHTML = '<div class="vazio">Nenhuma foto duplicada encontrada nesta planilha.</div>';
   } else {
     j.duplicatas.forEach(d => {
       const el = document.createElement("div");
       el.className = "par";
       el.innerHTML =
-        `<span class="tag-linha">Linha ${d.linha_dup} · coluna ${d.coluna_dup}${d.pos>1?" · foto "+d.pos:""}</span>`+
-        `<span class="seta">é cópia de →</span>`+
-        `<span class="tag-orig">Linha ${d.linha_orig} · coluna ${d.coluna_orig} (original)</span>`+
-        `<a href="${d.url}" target="_blank" rel="noopener">abrir foto</a>`;
+        '<span class="tag-linha">Linha ' + d.linha_dup + ' - coluna ' + d.coluna_dup + (d.pos>1?' - foto '+d.pos:'') + '</span>' +
+        '<span class="seta">e copia de -></span>' +
+        '<span class="tag-orig">Linha ' + d.linha_orig + ' - coluna ' + d.coluna_orig + ' (original)</span>' +
+        '<a href="' + d.url + '" target="_blank" rel="noopener">abrir foto</a>';
       lista.appendChild(el);
     });
   }
 
-  if(j.falhas && j.falhas.length){
+  if(j.falhas && j.falhas.length) {
     $("#bloco-falhas").style.display = "block";
-    $("#falhas-resumo").textContent = `Ver ${j.falhas.length} detalhe(s)`;
+    $("#falhas-resumo").textContent = "Ver " + j.falhas.length + " detalhe(s)";
     const lf = $("#lista-falhas"); lf.innerHTML = "";
     j.falhas.forEach(f => {
       const el = document.createElement("div");
       el.className = "falha-item";
-      el.textContent = `Linha ${f.linha}, coluna ${f.coluna}${f.pos>1?" (foto "+f.pos+")":""}: ${f.erro}`;
+      el.textContent = "Linha " + f.linha + ", coluna " + f.coluna + (f.pos>1?" (foto "+f.pos+")":"") + ": " + f.erro;
       lf.appendChild(el);
     });
   } else {
     $("#bloco-falhas").style.display = "none";
   }
-  $("#resultado").scrollIntoView({behavior:"smooth"});
+  $("#resultado").scrollIntoView({ behavior: "smooth" });
 }
 </script>
 </body>

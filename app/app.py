@@ -21,6 +21,7 @@ import detector
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 25 * 1024 * 1024  # 25 MB
+app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_DIR = os.path.join(BASE, "uploads")
@@ -121,4 +122,4 @@ def download(job_id):
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=False)
+    app.run(host="0.0.0.0", port=port, debug=True)
